@@ -1,6 +1,6 @@
-import invoices from '../data/invoice.js';
+import pool from '../config/database.js';
 import { iPaymuAPI } from '../helpers/service.js';
-import { handleValidatePayInvoice } from '../helpers/utils.js';
+import { ValidationError, generateRandomString, handleValidatePayInvoice } from '../helpers/utils.js';
 
 export const payInvoice = async (req, res) => {
     const {
@@ -12,25 +12,29 @@ export const payInvoice = async (req, res) => {
     } = req.body;
     const { id } = req.params;
 
-    const selectedInvoice = invoices.find((invoice) => invoice.id === id);
-    if (!selectedInvoice) {
-        res.status(404).json({
-            success: false,
-            message: 'Invoice tidak ditemukan.',
-        });
-        return;
-    }
-
-    const validation = handleValidatePayInvoice({
-        name, phone, email, paymentMethod, paymentChannel,
-    });
-
-    if (!validation.success) {
-        res.status(400).json(validation);
-        return;
-    }
-
     try {
+        const [rows] = await pool.query('SELECT * FROM invoice WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error_code: 'CPPI1',
+                message: 'Invoice tidak ditemukan.',
+            });
+        }
+
+        const validation = handleValidatePayInvoice({
+            name, phone, email, paymentMethod, paymentChannel,
+        });
+
+        if (!validation.success) {
+            return res.status(400).json({
+                ...validation,
+                error_code: 'CPPI2',
+            });
+        }
+
+        const [selectedInvoice] = rows;
+
         const payload = {
             name: name.trim(),
             phone: phone.trim(),
@@ -39,7 +43,7 @@ export const payInvoice = async (req, res) => {
             notifyUrl: selectedInvoice.ipaymu_notify_url,
             expired: 1,
             expiredType: 'days',
-            referenceId: selectedInvoice.invoice_code,
+            referenceId: generateRandomString(10),
             paymentMethod,
             paymentChannel,
             product: [selectedInvoice.title],
@@ -51,9 +55,15 @@ export const payInvoice = async (req, res) => {
             method: 'POST',
             body: payload,
         });
-        if (!response.Success) throw new Error(JSON.stringify(response));
-        const { ReferenceId, TransactionId } = response.Data;
-        res.status(200).json({
+        if (!response.Success) throw new ValidationError(JSON.stringify(response), 'response-ipaymu');
+        const { ReferenceId, TransactionId, QrString } = response.Data;
+
+        const qrString = QrString || '';
+
+        const [invoiceUpdated] = await pool.query('UPDATE invoice SET invoice_code = ?, transaction_id = ?, qr_string = ? WHERE id = ?', [ReferenceId, TransactionId, qrString, id]);
+        if (invoiceUpdated.affectedRows < 1) throw new Error('Terjadi kesalahan saat update invoice');
+
+        return res.status(200).json({
             success: true,
             message: 'Berhasil membuat pembayaran!',
             data: {
@@ -62,34 +72,56 @@ export const payInvoice = async (req, res) => {
             },
         });
     } catch (error) {
-        const errorData = JSON.parse(error.message);
-        res.status(errorData.Status || 500).json(errorData);
+        if (
+            error.code === 'ER_ACCESS_DENIED_ERROR'
+            || error.code === 'ER_NO_DB_ERROR'
+            || error.code === 'ER_PARSE_ERROR'
+        ) {
+            return res.status(500).json({
+                success: false,
+                error_code: 'CPPI3',
+                message: 'Terjadi kesalahan pada database.',
+            });
+        }
+        if (error instanceof ValidationError && error.field === 'response-ipaymu') {
+            const errorData = JSON.parse(error.message);
+            return res.status(errorData.Status || 500).json({
+                success: false,
+                error_code: 'CPPI4',
+                message: errorData.Message,
+            });
+        }
+        return res.status(500).json({
+            success: false,
+            error_code: 'CPPI5',
+            message: error.message,
+        });
     }
 };
 
 export const checkInvoice = async (req, res) => {
-    const { id, transaction_id: transactionId } = req.params;
-
-    if (!transactionId || transactionId.trim() === '') {
-        res.status(400).json({
-            success: false,
-            message: 'Transaksi ID harus diisi.',
-        });
-        return;
-    }
-
-    const selectedInvoice = invoices.find((invoice) => invoice.id === id);
-    if (!selectedInvoice) {
-        res.status(404).json({
-            success: false,
-            message: 'Invoice tidak ditemukan.',
-        });
-        return;
-    }
+    const { id } = req.params;
 
     try {
+        const [rows] = await pool.query('SELECT * FROM invoice WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error_code: 'CPCI2',
+                message: 'Invoice tidak ditemukan.',
+            });
+        }
+
+        if (!rows[0].invoice_code || !rows[0].transaction_id) {
+            return res.status(404).json({
+                success: false,
+                error_code: 'CPCI3',
+                message: 'Silakan pilih pembayaran dulu.',
+            });
+        }
+
         const payload = {
-            transactionId,
+            transactionId: rows[0].transaction_id,
             account: process.env.IPAYMU_VIRTUAL_ACCOUNT,
         };
         const response = await iPaymuAPI({
@@ -97,14 +129,58 @@ export const checkInvoice = async (req, res) => {
             method: 'POST',
             body: payload,
         });
-        if (!response.Success) throw new Error(JSON.stringify(response));
-        res.status(200).json({
+        if (!response.Success) throw new ValidationError(JSON.stringify(response), 'response-ipaymu');
+        const {
+            ReferenceId,
+            Amount,
+            Status,
+            PaymentChannel,
+            PaymentCode,
+            ExpiredDate,
+            BuyerName,
+            BuyerPhone,
+            BuyerEmail,
+        } = response.Data;
+        return res.status(200).json({
             success: true,
             message: 'Berhasil mengambil data pembayaran!',
-            data: response.Data,
+            data: {
+                invoice: ReferenceId,
+                amount: Amount,
+                status: Status,
+                payment_channel: PaymentChannel,
+                payment_code: PaymentCode,
+                expired_date: ExpiredDate,
+                buyer_name: BuyerName,
+                buyer_phone: BuyerPhone,
+                buyer_email: BuyerEmail,
+                qr_code: PaymentChannel === 'QRIS' ? rows[0].qr_string : '',
+            },
         });
     } catch (error) {
-        const errorData = JSON.parse(error.message);
-        res.status(errorData.Status || 500).json(errorData);
+        if (
+            error.code === 'ER_ACCESS_DENIED_ERROR'
+            || error.code === 'ER_NO_DB_ERROR'
+            || error.code === 'ER_PARSE_ERROR'
+        ) {
+            return res.status(500).json({
+                success: false,
+                error_code: 'CPCI4',
+                message: 'Terjadi kesalahan pada database.',
+            });
+        }
+        if (error instanceof ValidationError && error.field === 'response-ipaymu') {
+            const errorData = JSON.parse(error.message);
+            return res.status(errorData.Status || 500).json({
+                success: false,
+                error_code: 'CPCI5',
+                message: errorData.Message,
+            });
+        }
+        return res.status(500).json({
+            success: false,
+            error_code: 'CPCI6',
+            message: error.message,
+        });
     }
 };

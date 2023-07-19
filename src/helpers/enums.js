@@ -15,3 +15,5 @@ export const IPAYMU_PAYMENT_CODE = {
     INDOMARET: 'indomaret',
     QRIS: 'qris',
 };
+
+export const IPAYMU_API_URL = `${process.env.IPAYMU_URL}api/v2/`;

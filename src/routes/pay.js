@@ -4,8 +4,8 @@ import { checkInvoice, payInvoice } from '../controllers/pay.js';
 
 const router = express.Router();
 
-// @ GET /pay/:id/:transaction_id
-router.get('/:id/:transaction_id', checkInvoice);
+// @ GET /pay/:id
+router.get('/:id/', checkInvoice);
 
 // @ POST /pay/:id
 router.post('/:id', payInvoice);
