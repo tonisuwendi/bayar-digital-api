@@ -1,6 +1,6 @@
-import express from 'express';
+const express = require('express');
 
-import { checkInvoice, payInvoice } from '../controllers/pay.js';
+const { checkInvoice, payInvoice } = require('../controllers/pay');
 
 const router = express.Router();
 
@@ -10,4 +10,4 @@ router.get('/:id/', checkInvoice);
 // @ POST /pay/:id
 router.post('/:id', payInvoice);
 
-export default router;
+module.exports = router;

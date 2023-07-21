@@ -1,5 +1,5 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -39,4 +39,4 @@ const createTables = () => {
 
 createTables();
 
-export default pool;
+module.exports = pool;

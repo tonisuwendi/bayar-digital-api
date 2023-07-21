@@ -1,6 +1,6 @@
-import { IPAYMU_PAYMENT_CODE } from './enums.js';
+const { IPAYMU_PAYMENT_CODE } = require('./enums');
 
-export const iPaymuValidPayment = (paymentMethod, paymentChannel) => {
+const iPaymuValidPayment = (paymentMethod, paymentChannel) => {
     const validPaymentVA = [
         IPAYMU_PAYMENT_CODE.BAG,
         IPAYMU_PAYMENT_CODE.BCA,
@@ -21,7 +21,7 @@ export const iPaymuValidPayment = (paymentMethod, paymentChannel) => {
     return paymentMethod === IPAYMU_PAYMENT_CODE.QRIS && paymentChannel === IPAYMU_PAYMENT_CODE.QRIS;
 };
 
-export const handleValidatePayInvoice = ({
+const handleValidatePayInvoice = ({
     name, phone, email, paymentMethod, paymentChannel,
 }) => {
     let errorData = {};
@@ -41,7 +41,7 @@ export const handleValidatePayInvoice = ({
     };
 };
 
-export const generateRandomString = (length = 5) => {
+const generateRandomString = (length = 5) => {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const charactersLength = characters.length;
@@ -53,9 +53,16 @@ export const generateRandomString = (length = 5) => {
     return result;
 };
 
-export class ValidationError extends Error {
+class ValidationError extends Error {
     constructor(message, field) {
         super(message);
         this.field = field;
     }
 }
+
+module.exports = {
+    iPaymuValidPayment,
+    handleValidatePayInvoice,
+    generateRandomString,
+    ValidationError,
+};

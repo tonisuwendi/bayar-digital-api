@@ -1,6 +1,6 @@
-import pool from '../config/database.js';
+const pool = require('../config/database');
 
-export const getInvoice = async (req, res) => {
+exports.getInvoice = async (req, res) => {
     const { id } = req.params;
 
     try {

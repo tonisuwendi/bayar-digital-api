@@ -1,8 +1,8 @@
-import pool from '../config/database.js';
-import { iPaymuAPI } from '../helpers/service.js';
-import { ValidationError, generateRandomString, handleValidatePayInvoice } from '../helpers/utils.js';
+const pool = require('../config/database');
+const { iPaymuAPI } = require('../helpers/service');
+const { ValidationError, generateRandomString, handleValidatePayInvoice } = require('../helpers/utils');
 
-export const payInvoice = async (req, res) => {
+exports.payInvoice = async (req, res) => {
     const {
         name,
         phone,
@@ -99,7 +99,7 @@ export const payInvoice = async (req, res) => {
     }
 };
 
-export const checkInvoice = async (req, res) => {
+exports.checkInvoice = async (req, res) => {
     const { id } = req.params;
 
     try {

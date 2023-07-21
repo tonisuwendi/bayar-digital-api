@@ -1,10 +1,10 @@
-import express from 'express';
+const express = require('express');
 
-import { getInvoice } from '../controllers/invoice.js';
+const { getInvoice } = require('../controllers/invoice');
 
 const router = express.Router();
 
 // @ GET /invoice/:id
 router.get('/:id', getInvoice);
 
-export default router;
+module.exports = router;

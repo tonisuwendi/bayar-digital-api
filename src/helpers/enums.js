@@ -1,4 +1,4 @@
-export const IPAYMU_PAYMENT_CODE = {
+const IPAYMU_PAYMENT_CODE = {
     VA: 'va',
     BAG: 'bag',
     BCA: 'bca',
@@ -16,4 +16,9 @@ export const IPAYMU_PAYMENT_CODE = {
     QRIS: 'qris',
 };
 
-export const IPAYMU_API_URL = `${process.env.IPAYMU_URL}api/v2/`;
+const IPAYMU_API_URL = `${process.env.IPAYMU_URL}api/v2/`;
+
+module.exports = {
+    IPAYMU_PAYMENT_CODE,
+    IPAYMU_API_URL,
+};

@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
 
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
 
-import invoiceRoutes from './src/routes/invoice.js';
-import payInvoice from './src/routes/pay.js';
+const invoiceRoutes = require('./src/routes/invoice');
+const payInvoice = require('./src/routes/pay');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
