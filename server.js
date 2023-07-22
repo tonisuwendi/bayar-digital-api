@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const rootCas = require('ssl-root-cas');
 
 const invoiceRoutes = require('./src/routes/invoice');
 const payInvoice = require('./src/routes/pay');
@@ -10,6 +11,7 @@ const payInvoice = require('./src/routes/pay');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+rootCas.inject();
 dotenv.config();
 process.env.TZ = 'Asia/Jakarta';
 
