@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { WEBHOOK_IPAYMU } = require('../helpers/enums');
 const { iPaymuAPI } = require('../helpers/service');
 const { ValidationError, generateRandomString, handleValidatePayInvoice } = require('../helpers/utils');
 
@@ -40,7 +41,7 @@ exports.payInvoice = async (req, res) => {
             phone: phone.trim(),
             email: email.trim(),
             amount: selectedInvoice.price,
-            notifyUrl: selectedInvoice.ipaymu_notify_url,
+            notifyUrl: selectedInvoice.local_notif ? WEBHOOK_IPAYMU : selectedInvoice.ipaymu_notify_url,
             expired: 1,
             expiredType: 'days',
             referenceId: generateRandomString(10),

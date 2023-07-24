@@ -6,7 +6,8 @@ const dotenv = require('dotenv');
 const rootCas = require('ssl-root-cas');
 
 const invoiceRoutes = require('./src/routes/invoice');
-const payInvoice = require('./src/routes/pay');
+const payRoutes = require('./src/routes/pay');
+const webhookRoutes = require('./src/routes/webhook');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,7 +28,8 @@ app.get('/', (_, res) => {
 });
 
 app.use('/invoice', invoiceRoutes);
-app.use('/pay', payInvoice);
+app.use('/pay', payRoutes);
+app.use('/webhook', webhookRoutes);
 
 app.listen(PORT, (error) => {
     if (error) console.log(error);

@@ -5,3 +5,5 @@ DATABASE_NAME=bayardigital
 IPAYMU_VIRTUAL_ACCOUNT=
 IPAYMU_API_KEY=
 IPAYMU_URL=https://sandbox.ipaymu.com/
+DOMAIN_URL=http://localhost:5000/
+NODE_PRODUCTION=false
