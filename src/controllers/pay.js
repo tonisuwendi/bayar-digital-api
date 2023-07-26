@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const { WEBHOOK_IPAYMU } = require('../helpers/enums');
 const { iPaymuAPI } = require('../helpers/service');
 const { ValidationError, generateRandomString, handleValidatePayInvoice } = require('../helpers/utils');
 
@@ -41,7 +40,7 @@ exports.payInvoice = async (req, res) => {
             phone: phone.trim(),
             email: email.trim(),
             amount: selectedInvoice.price,
-            notifyUrl: selectedInvoice.local_notif ? WEBHOOK_IPAYMU : selectedInvoice.ipaymu_notify_url,
+            notifyUrl: selectedInvoice.ipaymu_notify_url,
             expired: 1,
             expiredType: 'days',
             referenceId: generateRandomString(10),
@@ -113,7 +112,9 @@ exports.checkInvoice = async (req, res) => {
             });
         }
 
-        if (!rows[0].invoice_code || !rows[0].transaction_id) {
+        const [selectedInvoice] = rows;
+
+        if (!selectedInvoice.invoice_code || !selectedInvoice.transaction_id) {
             return res.status(404).json({
                 success: false,
                 error_code: 'CPCI3',
@@ -122,7 +123,7 @@ exports.checkInvoice = async (req, res) => {
         }
 
         const payload = {
-            transactionId: rows[0].transaction_id,
+            transactionId: selectedInvoice.transaction_id,
             account: process.env.IPAYMU_VIRTUAL_ACCOUNT,
         };
         const response = await iPaymuAPI({
@@ -142,6 +143,14 @@ exports.checkInvoice = async (req, res) => {
             BuyerPhone,
             BuyerEmail,
         } = response.Data;
+        const externalLinkJSON = JSON.parse(selectedInvoice.external_link);
+        const newExternalLink = {
+            ...externalLinkJSON,
+            ...(Status !== 1 && {
+                link: '',
+            }),
+        };
+
         return res.status(200).json({
             success: true,
             message: 'Berhasil mengambil data pembayaran!',
@@ -155,7 +164,9 @@ exports.checkInvoice = async (req, res) => {
                 buyer_name: BuyerName,
                 buyer_phone: BuyerPhone,
                 buyer_email: BuyerEmail,
-                qr_code: PaymentChannel === 'QRIS' ? rows[0].qr_string : '',
+                qr_code: PaymentChannel === 'QRIS' ? selectedInvoice.qr_string : '',
+                info_message: JSON.parse(selectedInvoice.info_message),
+                external_link: externalLinkJSON.is_active ? newExternalLink : { is_active: false },
             },
         });
     } catch (error) {

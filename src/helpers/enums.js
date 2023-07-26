@@ -18,15 +18,7 @@ const IPAYMU_PAYMENT_CODE = {
 
 const IPAYMU_API_URL = `${process.env.IPAYMU_URL}api/v2/`;
 
-const WEBHOOK_IPAYMU = `${process.env.DOMAIN_URL}webhook/ipaymu`;
-
-const IPAYMU_WHITELIST_IP = process.env.NODE_PRODUCTION === 'true'
-    ? ['120.89.93.249', '120.89.93.222']
-    : ['120.89.93.102', '120.89.93.225', '34.101.178.210'];
-
 module.exports = {
     IPAYMU_PAYMENT_CODE,
     IPAYMU_API_URL,
-    WEBHOOK_IPAYMU,
-    IPAYMU_WHITELIST_IP,
 };
